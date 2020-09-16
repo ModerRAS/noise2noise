@@ -3,6 +3,7 @@ import string
 import random
 import numpy as np
 import cv2
+from PIL import Image
 
 
 def get_noise_model(noise_type="gaussian,0,50"):
@@ -28,26 +29,21 @@ def get_noise_model(noise_type="gaussian,0,50"):
 
         def add_text(img):
             img = img.copy()
-            h, w, _ = img.shape
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            img_for_cnt = np.zeros((h, w), np.uint8)
-            occupancy = np.random.uniform(min_occupancy, max_occupancy)
+            TRANSPARENCY = random.randint(28, 82)
 
-            while True:
-                n = random.randint(5, 10)
-                random_str = ''.join([random.choice(string.ascii_letters + string.digits) for i in range(n)])
-                font_scale = np.random.uniform(0.5, 1)
-                thickness = random.randint(1, 3)
-                (fw, fh), baseline = cv2.getTextSize(random_str, font, font_scale, thickness)
-                x = random.randint(0, max(0, w - 1 - fw))
-                y = random.randint(fh, h - 1 - baseline)
-                color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-                cv2.putText(img, random_str, (x, y), font, font_scale, color, thickness)
-                cv2.putText(img_for_cnt, random_str, (x, y), font, font_scale, 255, thickness)
+            image = Image.fromarray(img)
+            watermark = Image.open('./watermark.png')#水印路径
 
-                if (img_for_cnt > 0).sum() > h * w * occupancy / 100:
-                    break
-            return img
+            if watermark.mode!='RGBA':
+                alpha = Image.new('L', watermark.size, 255)
+                watermark.putalpha(alpha)
+
+            random_X = random.randint(-750 , 45)
+            random_Y = random.randint(-500 , 30)
+
+            paste_mask = watermark.split()[3].point(lambda i: i * TRANSPARENCY / 100.)
+            image.paste(watermark, (random_X , random_Y ), mask=paste_mask)
+            return image
         return add_text
     elif tokens[0] == "impulse":
         min_occupancy = int(tokens[1])
